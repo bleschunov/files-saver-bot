@@ -9,6 +9,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import javax.annotation.PostConstruct;
+
 /**
  * @author Bleschunov Dmitry
  */
@@ -19,6 +21,17 @@ public class TelegramBot extends TelegramLongPollingBot {
     private String botToken;
     @Value("${bot.username}")
     private String botUsername;
+
+    private final UpdateController updateController;
+
+    public TelegramBot(UpdateController updateController) {
+        this.updateController = updateController;
+    }
+
+    @PostConstruct
+    public void init() {
+        updateController.setTelegramBot(this);
+    }
 
     @Override
     public String getBotUsername() {
@@ -33,15 +46,10 @@ public class TelegramBot extends TelegramLongPollingBot {
     @Override
     public void onUpdateReceived(Update update) {
         Message originalMessage = update.getMessage();
-        log.debug("User sent message: " + originalMessage.getText());
-
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(originalMessage.getChatId());
-        sendMessage.setText(originalMessage.getText());
-        sendResponse(sendMessage);
+        updateController.processUpdate(update);
     }
 
-    private void sendResponse(SendMessage message) {
+    public void sendResponse(SendMessage message) {
         if (message != null) {
             try {
                 execute(message);
