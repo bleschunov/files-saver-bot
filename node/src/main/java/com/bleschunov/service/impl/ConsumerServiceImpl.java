@@ -1,0 +1,41 @@
+package com.bleschunov.service.impl;
+
+import com.bleschunov.model.RabbitQueue;
+import com.bleschunov.service.ConsumerService;
+import com.bleschunov.service.MainService;
+import com.bleschunov.service.ProducerService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Update;
+
+/**
+ * @author Bleschunov Dmitry
+ */
+@Service
+@RequiredArgsConstructor
+@Log4j
+public class ConsumerServiceImpl implements ConsumerService {
+    private final MainService mainService;
+
+    @Override
+    @RabbitListener(queues = RabbitQueue.TEXT_MESSAGE_UPDATE)
+    public void consumeTextMessageUpdate(Update update) {
+        log.debug("NODE: Text message is received");
+        mainService.processTextMessage(update);
+    }
+
+    @Override
+    @RabbitListener(queues = RabbitQueue.PHOTO_MESSAGE_UPDATE)
+    public void consumePhotoMessageUpdate(Update update) {
+        log.debug("NODE: Photo message is received");
+    }
+
+    @Override
+    @RabbitListener(queues = RabbitQueue.DOC_MESSAGE_UPDATE)
+    public void consumeDocMessageUpdate(Update update) {
+        log.debug("NODE: Doc message is received");
+    }
+}

@@ -50,6 +50,7 @@ public class UpdateController {
     }
 
     private void processTextMessage(Update update) {
+        log.debug("DISPATCHER: Text message is received");
         updateProducer.produce(RabbitQueue.TEXT_MESSAGE_UPDATE, update);
     }
 
@@ -71,7 +72,8 @@ public class UpdateController {
         sendResponse(messages.createTextMessage(update, "Unsupported message type"));
     }
 
-    private void sendResponse(SendMessage message) {
+    public void sendResponse(SendMessage message) {
+        log.debug("DISPATCHER: Text message is sent");
         telegramBot.sendResponse(message);
     }
 }
