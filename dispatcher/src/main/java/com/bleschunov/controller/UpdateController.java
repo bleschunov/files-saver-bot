@@ -55,16 +55,21 @@ public class UpdateController {
     }
 
     private void processPhotoMessage(Update update) {
+        sendPhotoIsReceivedResponse(update);
         updateProducer.produce(RabbitQueue.PHOTO_MESSAGE_UPDATE, update);
+    }
+
+    private void processDocumentMessage(Update update) {
+        updateProducer.produce(RabbitQueue.DOC_MESSAGE_UPDATE, update);
+        sendDocumentIsReceivedResponse(update);
     }
 
     private void sendDocumentIsReceivedResponse(Update update) {
         sendResponse(messages.createTextMessage(update, "Document is received. Please wait..."));
     }
 
-    private void processDocumentMessage(Update update) {
-        updateProducer.produce(RabbitQueue.DOC_MESSAGE_UPDATE, update);
-        sendDocumentIsReceivedResponse(update);
+    private void sendPhotoIsReceivedResponse(Update update) {
+        sendResponse(messages.createTextMessage(update, "Photo is received. Please wait..."));
     }
 
     private void processUnsupportedMessage(Update update) {

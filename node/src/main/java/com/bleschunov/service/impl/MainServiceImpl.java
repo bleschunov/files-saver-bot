@@ -54,8 +54,27 @@ public class MainServiceImpl implements MainService {
     public void processDocMessage(Update update) {
         saveRawData(update);
         if (isAllowedToSendContent(update)) {
-            fileService.processDoc(update);
-            sendResponse(update, "Doc was successfully uploaded. The link to download: ...");
+            try {
+                fileService.processDoc(update);
+                sendResponse(update, "Doc was successfully uploaded. The link to download: ...");
+            } catch (RuntimeException e) {
+                log.error("Something went wrong", e);
+                sendResponse(update, "Something went wrong. Try again");
+            }
+        }
+    }
+
+    @Override
+    public void processPhotoMessage(Update update) {
+        saveRawData(update);
+        if (isAllowedToSendContent(update)) {
+            try {
+                fileService.processPhoto(update);
+                sendResponse(update, "Photo was successfully uploaded. The link to download: ...");
+            } catch (RuntimeException e) {
+                log.error("Something went wrong", e);
+                sendResponse(update, "Something went wrong. Try again");
+            }
         }
     }
 
@@ -71,15 +90,6 @@ public class MainServiceImpl implements MainService {
         }
 
         return true;
-    }
-
-    @Override
-    public void processPhotoMessage(Update update) {
-        saveRawData(update);
-
-        // todo add logic to save photo
-
-        sendResponse(update, "Photo was successfully uploaded. The link to download: ...");
     }
 
     private String processServiceCommand(AppUser appUser, String command) {
