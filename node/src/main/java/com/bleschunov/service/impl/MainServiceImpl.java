@@ -7,18 +7,19 @@ import com.bleschunov.entity.RawData;
 import com.bleschunov.entity.enums.UserState;
 import com.bleschunov.service.MainService;
 import com.bleschunov.service.ProducerService;
+import com.bleschunov.service.enums.ServiceCommand;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.User;
-
 /**
  * @author Bleschunov Dmitry
  */
 @RequiredArgsConstructor
 @Service
+@Log4j
 public class MainServiceImpl implements MainService {
     private final RawDataDao rawDataDao;
     private final ProducerService producerService;
@@ -27,14 +28,83 @@ public class MainServiceImpl implements MainService {
     @Override
     public void processTextMessage(Update update) {
         saveRawData(update);
-        Message originalMessage = update.getMessage();
-        User telegramUser = originalMessage.getFrom();
-        AppUser appUser = findOrSaveAppUser(telegramUser);
+        AppUser appUser = findOrSaveAppUser(update);
+        UserState userState = appUser.getState();
+        String messageText = update.getMessage().getText();
+        String output = "";
 
-//        SendMessage sendMessage = new SendMessage();
-//        sendMessage.setChatId(update.getMessage().getChatId());
-//        sendMessage.setText(update.getMessage().getText());
-//        producerService.produceAnswer(sendMessage);
+        if (ServiceCommand.CANCEL.equals(messageText)) {
+            output = processCancelCommand(appUser);
+        }
+        else if (UserState.BASIC_STATE.equals(userState)) {
+            output = processServiceCommand(appUser, messageText);
+        } else if (UserState.WAIT_FOR_EMAIL_STATE.equals(userState)) {
+            // todo email handler
+        } else {
+            log.error("Unknown user state: " + userState);
+            output = "Unknown error. Write /cancel and try again.";
+        }
+
+        sendResponse(update, output);
+    }
+
+    @Override
+    public void processDocMessage(Update update) {
+        saveRawData(update);
+        if (isAllowedToSendContent(update)) {
+            // todo add logic to save doc
+            sendResponse(update, "Doc was successfully uploaded. The link to download: ...");
+        }
+    }
+
+    private boolean isAllowedToSendContent(Update update) {
+        AppUser appUser = findOrSaveAppUser(update);
+        if (!appUser.isActive()) {
+            sendResponse(update, "Active your account first. Check email");
+            return false;
+        }
+        else if (!UserState.BASIC_STATE.equals(appUser.getState())) {
+            sendResponse(update, "You cannot upload content in this state. Write /cancel and try again.");
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    public void processPhotoMessage(Update update) {
+        saveRawData(update);
+
+        // todo add logic to save photo
+
+        sendResponse(update, "Photo was successfully uploaded. The link to download: ...");
+    }
+
+    private String processServiceCommand(AppUser appUser, String command) {
+        if (ServiceCommand.START.equals(command)) {
+            return "Welcome!";
+        }
+        else if (ServiceCommand.REGISTRATION.equals(command)) {
+            // todo add registration handler
+            return "This command temporarily unavailable";
+        }
+        else if (ServiceCommand.HELP.equals(command)) {
+            return help();
+        }
+
+        return "Unknown error. Write /help to see list of available commands";
+    }
+
+    private String help() {
+        return "List of available commands:\n" +
+                "/cancel\n" +
+                "/registration\n" +
+                "/help\n";
+    }
+
+    private String processCancelCommand(AppUser appUser) {
+        appUser.setState(UserState.BASIC_STATE);
+        return "Command was canceled";
     }
 
     private void saveRawData(Update update) {
@@ -42,7 +112,8 @@ public class MainServiceImpl implements MainService {
         rawDataDao.save(rawData);
     }
 
-    private AppUser findOrSaveAppUser(User telegramUser) {
+    private AppUser findOrSaveAppUser(Update update) {
+        User telegramUser = update.getMessage().getFrom();
         return appUserDao.findByTelegramUserId(telegramUser.getId()).orElseGet(() -> {
             AppUser transientAppUser = AppUser
                     .builder()
@@ -57,5 +128,12 @@ public class MainServiceImpl implements MainService {
 
             return appUserDao.save(transientAppUser);
         });
+    }
+
+    private void sendResponse(Update update, String output) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(update.getMessage().getChatId());
+        sendMessage.setText(output);
+        producerService.produceAnswer(sendMessage);
     }
 }

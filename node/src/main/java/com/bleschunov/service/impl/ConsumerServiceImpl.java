@@ -3,12 +3,10 @@ package com.bleschunov.service.impl;
 import com.bleschunov.model.RabbitQueue;
 import com.bleschunov.service.ConsumerService;
 import com.bleschunov.service.MainService;
-import com.bleschunov.service.ProducerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 /**
@@ -31,11 +29,13 @@ public class ConsumerServiceImpl implements ConsumerService {
     @RabbitListener(queues = RabbitQueue.PHOTO_MESSAGE_UPDATE)
     public void consumePhotoMessageUpdate(Update update) {
         log.debug("NODE: Photo message is received");
+        mainService.processPhotoMessage(update);
     }
 
     @Override
     @RabbitListener(queues = RabbitQueue.DOC_MESSAGE_UPDATE)
     public void consumeDocMessageUpdate(Update update) {
         log.debug("NODE: Doc message is received");
+        mainService.processDocMessage(update);
     }
 }
