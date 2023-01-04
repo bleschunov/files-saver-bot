@@ -5,6 +5,7 @@ import com.bleschunov.dao.RawDataDao;
 import com.bleschunov.entity.AppUser;
 import com.bleschunov.entity.RawData;
 import com.bleschunov.entity.enums.UserState;
+import com.bleschunov.service.FileService;
 import com.bleschunov.service.MainService;
 import com.bleschunov.service.ProducerService;
 import com.bleschunov.service.enums.ServiceCommand;
@@ -24,6 +25,7 @@ public class MainServiceImpl implements MainService {
     private final RawDataDao rawDataDao;
     private final ProducerService producerService;
     private final AppUserDao appUserDao;
+    private final FileService fileService;
 
     @Override
     public void processTextMessage(Update update) {
@@ -52,7 +54,7 @@ public class MainServiceImpl implements MainService {
     public void processDocMessage(Update update) {
         saveRawData(update);
         if (isAllowedToSendContent(update)) {
-            // todo add logic to save doc
+            fileService.processDoc(update);
             sendResponse(update, "Doc was successfully uploaded. The link to download: ...");
         }
     }
