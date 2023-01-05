@@ -14,7 +14,6 @@ public enum ServiceCommand {
 
     private final String command;
 
-
     @Override
     public String toString() {
         return command;

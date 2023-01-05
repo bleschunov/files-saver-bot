@@ -2,12 +2,15 @@ package com.bleschunov.service.impl;
 
 import com.bleschunov.dao.AppUserDao;
 import com.bleschunov.dao.RawDataDao;
+import com.bleschunov.entity.AppDocument;
+import com.bleschunov.entity.AppPhoto;
 import com.bleschunov.entity.AppUser;
 import com.bleschunov.entity.RawData;
 import com.bleschunov.entity.enums.UserState;
 import com.bleschunov.service.FileService;
 import com.bleschunov.service.MainService;
 import com.bleschunov.service.ProducerService;
+import com.bleschunov.service.enums.LinkType;
 import com.bleschunov.service.enums.ServiceCommand;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j;
@@ -55,8 +58,9 @@ public class MainServiceImpl implements MainService {
         saveRawData(update);
         if (isAllowedToSendContent(update)) {
             try {
-                fileService.processDoc(update);
-                sendResponse(update, "Doc was successfully uploaded. The link to download: ...");
+                AppDocument appDocument = fileService.processDoc(update);
+                String linkToDownload = fileService.createLink(appDocument.getId(), LinkType.GET_DOC);
+                sendResponse(update, "Doc was successfully uploaded. The link to download: " + linkToDownload);
             } catch (RuntimeException e) {
                 log.error("Something went wrong", e);
                 sendResponse(update, "Something went wrong. Try again");
@@ -69,8 +73,9 @@ public class MainServiceImpl implements MainService {
         saveRawData(update);
         if (isAllowedToSendContent(update)) {
             try {
-                fileService.processPhoto(update);
-                sendResponse(update, "Photo was successfully uploaded. The link to download: ...");
+                AppPhoto appPhoto = fileService.processPhoto(update);
+                String linkToDownload = fileService.createLink(appPhoto.getId(), LinkType.GET_PHOTO);
+                sendResponse(update, "Photo was successfully uploaded. The link to download: " + linkToDownload);
             } catch (RuntimeException e) {
                 log.error("Something went wrong", e);
                 sendResponse(update, "Something went wrong. Try again");

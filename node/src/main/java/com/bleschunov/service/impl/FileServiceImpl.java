@@ -7,6 +7,8 @@ import com.bleschunov.entity.AppDocument;
 import com.bleschunov.entity.AppPhoto;
 import com.bleschunov.entity.BinaryContent;
 import com.bleschunov.service.FileService;
+import com.bleschunov.service.enums.LinkType;
+import com.bleschunov.util.CryptoTool;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j;
 import org.json.JSONObject;
@@ -26,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 
 /**
  * @author Bleschunov Dmitry
@@ -40,10 +43,13 @@ public class FileServiceImpl implements FileService {
     private String fileInfoUri;
     @Value("${service.file_storage.uri}")
     private String fileStorageUri;
+    @Value("${link.address}")
+    private String linkAddress;
 
     private final BinaryContentDao binaryContentDao;
     private final AppDocumentDao appDocumentDao;
     private final AppPhotoDao appPhotoDao;
+    private final CryptoTool cryptoTool;
 
     @Override
     public AppDocument processDoc(Update update) {
@@ -69,6 +75,11 @@ public class FileServiceImpl implements FileService {
         }
     }
 
+    @Override
+    public String createLink(long docId, LinkType linkType) {
+        return "http://" + linkAddress + "/" + linkType + "?id=" + cryptoTool.getHashOf(docId);
+    }
+
     private BinaryContent getPersistentBinaryContent(ResponseEntity<String> responseEntity) {
         JSONObject jsonObject = new JSONObject(responseEntity.getBody());
         String filePath = jsonObject.getJSONObject("result").getString("file_path");
@@ -77,8 +88,7 @@ public class FileServiceImpl implements FileService {
                 .builder()
                 .fileAsArrayOfBytes(fileAsByteArray)
                 .build();
-        BinaryContent persistentBinaryContent = binaryContentDao.save(transientBinaryContent);
-        return persistentBinaryContent;
+        return binaryContentDao.save(transientBinaryContent);
     }
 
 
@@ -112,7 +122,8 @@ public class FileServiceImpl implements FileService {
             fileId = update.getMessage().getDocument().getFileId();
         }
         else {
-            fileId = update.getMessage().getPhoto().get(0).getFileId();
+            List<PhotoSize> photoSizes = update.getMessage().getPhoto();
+            fileId = photoSizes.get(photoSizes.size() - 1).getFileId();
         }
 
         return new RestTemplate().exchange(
